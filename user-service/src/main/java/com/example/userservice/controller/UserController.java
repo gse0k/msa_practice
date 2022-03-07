@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/")
 public class UserController {
@@ -28,12 +30,13 @@ public class UserController {
         this.userService=userService;
     }
 
-    @GetMapping("/health_check")
-    public String status(){
-        return "It's Working In User Service";
+    @GetMapping("/user-service/health_check")
+    public String status(HttpServletRequest request){
+        return String.format("It's Working in User Service on Port %s",request.getServerPort());
+//        return "It's Working In User Service";
     }
 
-    @GetMapping("/welcome")
+    @GetMapping("/user-service/welcome")
     public String welcome(){
 //        return env.getProperty("greeting.message");
         return greeting.getMessage();
