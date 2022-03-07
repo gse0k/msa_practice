@@ -1,6 +1,7 @@
 package com.example.userservice.controller;
 
 import com.example.userservice.dto.UserDto;
+import com.example.userservice.jpa.UserEntity;
 import com.example.userservice.service.UserService;
 import com.example.userservice.vo.Greeting;
 import com.example.userservice.vo.RequestUser;
@@ -14,9 +15,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/user-service")
 public class UserController {
     private Environment env;
     private UserService userService;
@@ -25,34 +28,54 @@ public class UserController {
     private Greeting greeting;
 
     @Autowired
-    public UserController(Environment env,UserService userService){
-        this.env=env;
-        this.userService=userService;
+    public UserController(Environment env, UserService userService) {
+        this.env = env;
+        this.userService = userService;
     }
 
-    @GetMapping("/user-service/health_check")
-    public String status(HttpServletRequest request){
-        return String.format("It's Working in User Service on Port %s",request.getServerPort());
+    @GetMapping("/health_check")
+    public String status(HttpServletRequest request) {
+        return String.format("It's Working in User Service on Port %s", request.getServerPort());
 //        return "It's Working In User Service";
     }
 
-    @GetMapping("/user-service/welcome")
-    public String welcome(){
+    @GetMapping("/welcome")
+    public String welcome() {
 //        return env.getProperty("greeting.message");
         return greeting.getMessage();
     }
 
     @PostMapping("/users")
-    public ResponseEntity<ResponseUser> createUser(@RequestBody RequestUser user){
+    public ResponseEntity<ResponseUser> createUser(@RequestBody RequestUser user) {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
-        UserDto userDto=mapper.map(user,UserDto.class);
+        UserDto userDto = mapper.map(user, UserDto.class);
         userService.createUser(userDto);
 
-        ResponseUser responseUser=mapper.map(userDto,ResponseUser.class);
+        ResponseUser responseUser = mapper.map(userDto, ResponseUser.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseUser);
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<ResponseUser>> getUsers() {
+        Iterable<UserEntity> userList = userService.getUserByAll();
+        List<ResponseUser> result = new ArrayList<>();
+        userList.forEach(v -> {
+            result.add(new ModelMapper().map(v, ResponseUser.class));
+
+        });
+        return ResponseEntity.status(HttpStatus.OK).body(result);
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<ResponseUser> getUsers(@PathVariable("userId") String userId) {
+        UserDto userDto = userService.getUserByUserId(userId);
+
+        ResponseUser returnValue= new ModelMapper().map(userDto,ResponseUser.class);
+
+        return ResponseEntity.status(HttpStatus.OK).body(returnValue);
     }
 
 }
