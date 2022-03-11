@@ -3,12 +3,18 @@ package com.example.apigatewayservice.filter;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.support.ipresolver.RemoteAddressResolver;
+import org.springframework.cloud.gateway.support.ipresolver.XForwardedRemoteAddressResolver;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
 
 @Component
 @Slf4j
@@ -19,28 +25,24 @@ public class GlobalFilter extends AbstractGatewayFilterFactory<GlobalFilter.Conf
 
     @Override
     public GatewayFilter apply(Config config) {
-        // Custom PRE Filter
-        return (exchange, chain) -> {
+        return ((exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
-            log.info("Global PRE baseMessage: {}", config.getBaseMessage());
+            log.info("Global Filter baseMessage: {}, {}", config.getBaseMessage(), request.getRemoteAddress());
             if (config.isPreLogger()) {
-                log.info("Global Filter Start: request id -> {}",request.getId());
+                log.info("Global Filter Start: request id -> {}", request.getId());
             }
-            //Global PRE -> Custom PRE,POST -> Global POST
-            //Custom Post Filter
-            return chain.filter(exchange).then(Mono.fromRunnable(() -> {
-                if(config.isPostLogger()){
+            return chain.filter(exchange).then(Mono.fromRunnable(()->{
+                if (config.isPostLogger()) {
                     log.info("Global Filter End: response code -> {}", response.getStatusCode());
                 }
             }));
-        };
+        });
     }
 
     @Data
     public static class Config {
-        // Put the configuration properties
         private String baseMessage;
         private boolean preLogger;
         private boolean postLogger;
